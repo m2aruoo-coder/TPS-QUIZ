@@ -176,14 +176,11 @@
     <header class="fixed top-0 left-0 w-full z-50 glass-panel border-b border-gold/20 py-4 px-6 md:px-12 transition-all duration-300">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             
-            <!-- TBS Luxury Logo -->
+            <!-- TBS Luxury Logo (Removed Circle Badge as requested) -->
             <a href="https://www.tbsfresh.com/" target="_blank" class="flex items-center gap-3 group cursor-pointer">
-                <div class="w-12 h-12 rounded-full border-2 border-gold/60 flex items-center justify-center bg-espresso-900/80 group-hover:border-gold transition-all duration-300 shadow-lg shadow-gold/10">
-                    <span class="font-playfair text-gold text-2xl font-bold tracking-widest group-hover:scale-110 transition-transform">TBS</span>
-                </div>
-                <div class="hidden sm:block text-right">
+                <div class="text-right">
+                    <span class="block text-2xl font-playfair font-bold text-gold tracking-widest group-hover:scale-105 transition-transform">TBS</span>
                     <span class="block text-xs uppercase tracking-widest text-gold/80 font-semibold">The Bakery Shop</span>
-                    <span class="block text-sm text-cream-100 font-bold tracking-wide">TBS FRESH</span>
                 </div>
             </a>
 
@@ -667,6 +664,7 @@
         let timerInterval = null;
         let timeLeft = 15;
         let score = 0;
+        let isAnswering = false;
 
         function scrollToChallenge() {
             document.getElementById('challenge').scrollIntoView({ behavior: 'smooth' });
@@ -689,26 +687,34 @@
         function renderQuestion() {
             clearInterval(timerInterval);
             timeLeft = 15;
+            isAnswering = false;
 
             const qData = activeQuestions[currentIdx];
             document.getElementById('question-progress-num').innerText = `${currentIdx + 1} / 3`;
             document.getElementById('question-text').innerText = qData.q;
-            document.getElementById('feedback-msg').innerText = '';
+            
+            // Clean feedback message and reset styles
+            const feedbackMsg = document.getElementById('feedback-msg');
+            feedbackMsg.innerText = '';
+            feedbackMsg.className = 'text-center font-bold text-sm min-h-[24px] transition-all duration-300';
 
             const optionsContainer = document.getElementById('options-container');
             optionsContainer.innerHTML = '';
 
+            // Clean render each option button without any leftover styles/classes
             qData.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = 'w-full p-4 rounded-xl glass-panel text-right hover:border-gold hover:bg-espresso-700/80 transition-all duration-300 flex items-center justify-between border border-gold/20 text-cream-100 text-sm md:text-base font-semibold group';
+                btn.type = 'button';
+                // Pure clean base styling for choices
+                btn.className = 'w-full p-4 rounded-xl glass-panel text-right hover:border-gold hover:bg-espresso-700/80 transition-all duration-300 flex items-center justify-between border border-gold/20 text-cream-100 text-sm md:text-base font-semibold group relative overflow-hidden';
                 btn.onclick = () => selectAnswer(idx);
 
                 btn.innerHTML = `
-                    <span class="flex items-center gap-3">
+                    <span class="flex items-center gap-3 relative z-10 pointer-events-none">
                         <span class="w-7 h-7 rounded-full bg-espresso-800 border border-gold/30 text-gold text-xs flex items-center justify-center font-playfair group-hover:bg-gold group-hover:text-espresso-900 transition-colors">${String.fromCharCode(65 + idx)}</span>
                         <span>${opt}</span>
                     </span>
-                    <i class="fa-solid fa-chevron-left text-xs text-gold/40 group-hover:text-gold group-hover:-translate-x-1 transition-all"></i>
+                    <i class="fa-solid fa-chevron-left text-xs text-gold/40 group-hover:text-gold group-hover:-translate-x-1 transition-all relative z-10 pointer-events-none"></i>
                 `;
                 optionsContainer.appendChild(btn);
             });
@@ -740,28 +746,70 @@
         }
 
         function selectAnswer(selectedIdx) {
+            if (isAnswering) return;
+            isAnswering = true;
             clearInterval(timerInterval);
+
             const qData = activeQuestions[currentIdx];
             const optionsBtns = document.getElementById('options-container').children;
 
             // Disable all buttons during feedback
             for (let btn of optionsBtns) {
                 btn.disabled = true;
+                btn.classList.add('cursor-not-allowed', 'opacity-90');
             }
 
             if (selectedIdx === qData.correct) {
                 score++;
                 playSuccessSound();
-                optionsBtns[selectedIdx].classList.add('border-green-500', 'bg-green-950/40');
-                document.getElementById('feedback-msg').innerText = 'إجابة صحيحة وخبرة رفيعة!';
-                document.getElementById('feedback-msg').className = 'text-center font-bold text-sm text-green-400 min-h-[24px]';
+                optionsBtns[selectedIdx].classList.remove('hover:border-gold', 'hover:bg-espresso-700/80');
+                optionsBtns[selectedIdx].classList.add('border-green-500', 'bg-green-950/80', 'text-green-200');
+                
+                const feedbackMsg = document.getElementById('feedback-msg');
+                feedbackMsg.innerText = 'إجابة صحيحة وخبرة رفيعة!';
+                feedbackMsg.className = 'text-center font-bold text-sm text-green-400 min-h-[24px]';
             } else {
                 playFailSound();
-                optionsBtns[selectedIdx].classList.add('border-red-500', 'bg-red-950/40');
-                optionsBtns[qData.correct].classList.add('border-green-500', 'bg-green-950/30');
-                document.getElementById('feedback-msg').innerText = 'إجابة غير دقيقة.';
-                document.getElementById('feedback-msg').className = 'text-center font-bold text-sm text-red-400 min-h-[24px]';
+                optionsBtns[selectedIdx].classList.remove('hover:border-gold', 'hover:bg-espresso-700/80');
+                optionsBtns[selectedIdx].classList.add('border-red-500', 'bg-red-950/80', 'text-red-200');
+
+                optionsBtns[qData.correct].classList.remove('hover:border-gold', 'hover:bg-espresso-700/80');
+                optionsBtns[qData.correct].classList.add('border-green-500', 'bg-green-950/60', 'text-green-200');
+
+                const feedbackMsg = document.getElementById('feedback-msg');
+                feedbackMsg.innerText = 'إجابة غير دقيقة.';
+                feedbackMsg.className = 'text-center font-bold text-sm text-red-400 min-h-[24px]';
             }
+
+            setTimeout(() => {
+                currentIdx++;
+                if (currentIdx < 3) {
+                    renderQuestion();
+                } else {
+                    finishQuiz();
+                }
+            }, 1200);
+        }
+
+        function handleTimeout() {
+            if (isAnswering) return;
+            isAnswering = true;
+
+            playFailSound();
+            const qData = activeQuestions[currentIdx];
+            const optionsBtns = document.getElementById('options-container').children;
+
+            for (let btn of optionsBtns) {
+                btn.disabled = true;
+            }
+
+            if (optionsBtns[qData.correct]) {
+                optionsBtns[qData.correct].classList.add('border-green-500', 'bg-green-950/60');
+            }
+
+            const feedbackMsg = document.getElementById('feedback-msg');
+            feedbackMsg.innerText = 'انتهى الوقت!';
+            feedbackMsg.className = 'text-center font-bold text-sm text-red-400 min-h-[24px]';
 
             setTimeout(() => {
                 currentIdx++;
